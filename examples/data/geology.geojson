@@ -1,0 +1,70 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "unit_id": "G001",
+        "formation": "Archean Basement",
+        "age_ma": 2500,
+        "lithology": "Granite"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [134.1234, -23.4567]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "unit_id": "G002",
+        "formation": "Paleoproterozoic Basin",
+        "age_ma": 1800,
+        "lithology": "Sandstone"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [134.1256, -23.4589]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "unit_id": "G003",
+        "formation": "Mesoproterozoic Cover",
+        "age_ma": 1200,
+        "lithology": "Shale"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [134.1278, -23.4601]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "unit_id": "G004",
+        "formation": "Archean Basement",
+        "age_ma": 2500,
+        "lithology": "Gneiss"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [134.1290, -23.4623]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "unit_id": "G005",
+        "formation": "Paleoproterozoic Basin",
+        "age_ma": 1800,
+        "lithology": "Conglomerate"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [134.1312, -23.4645]
+      }
+    }
+  ]
+}

@@ -1,0 +1,518 @@
+{
+  "datasets": [
+    {
+      "filename": "exploration_samples.csv",
+      "format": "csv",
+      "row_count": 12,
+      "columns": [
+        "sample_id",
+        "latitude",
+        "longitude",
+        "uranium_ppm",
+        "depth_m",
+        "date",
+        "notes"
+      ],
+      "column_profiles": [
+        {
+          "name": "sample_id",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 12,
+          "sample_values": [
+            "S001",
+            "S002",
+            "S003",
+            "S004",
+            "S005"
+          ]
+        },
+        {
+          "name": "latitude",
+          "dtype": "float64",
+          "missing_count": 1,
+          "missing_percentage": 8.33,
+          "unique_count": 10,
+          "sample_values": [
+            -23.4567,
+            -23.4567,
+            -23.4589,
+            -23.4601,
+            -23.4623
+          ]
+        },
+        {
+          "name": "longitude",
+          "dtype": "float64",
+          "missing_count": 1,
+          "missing_percentage": 8.33,
+          "unique_count": 10,
+          "sample_values": [
+            134.1234,
+            134.1234,
+            134.1256,
+            134.1278,
+            134.129
+          ]
+        },
+        {
+          "name": "uranium_ppm",
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 12,
+          "sample_values": [
+            245.3,
+            198.7,
+            12.4,
+            312.8,
+            89.2
+          ]
+        },
+        {
+          "name": "depth_m",
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 12,
+          "sample_values": [
+            12.5,
+            13.2,
+            15.0,
+            10.1,
+            14.3
+          ]
+        },
+        {
+          "name": "date",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 11,
+          "sample_values": [
+            "2023-01-15",
+            "2023-01-15",
+            "2023-01-16",
+            "2023-01-17",
+            "2023-01-18"
+          ]
+        },
+        {
+          "name": "notes",
+          "dtype": "str",
+          "missing_count": 5,
+          "missing_percentage": 41.67,
+          "unique_count": 7,
+          "sample_values": [
+            "High grade",
+            "Duplicate location",
+            "Low grade",
+            "Missing latitude",
+            "Missing longitude"
+          ]
+        }
+      ],
+      "file_size_bytes": 685,
+      "coordinate_info": {
+        "lat_column": "latitude",
+        "lon_column": "longitude",
+        "detection_method": "explicit_lat_lon",
+        "confidence": 0.95,
+        "valid_count": 8,
+        "missing_count": 2,
+        "invalid_count": 2,
+        "total_count": 12,
+        "valid_percentage": 66.67,
+        "missing_percentage": 16.67,
+        "invalid_percentage": 16.67
+      },
+      "planar_coordinate_info": null,
+      "geometry_types": [],
+      "crs": null,
+      "bounding_box": {
+        "min_lat": -23.4723,
+        "max_lat": -23.4567,
+        "min_lon": 134.1234,
+        "max_lon": 134.139
+      },
+      "duplicate_count": 2,
+      "duplicate_percentage": 20.0,
+      "parse_errors": [],
+      "warnings": [
+        "16.7% missing coordinates",
+        "16.7% invalid coordinates",
+        "20.0% exact duplicate locations"
+      ]
+    },
+    {
+      "filename": "geology.geojson",
+      "format": "geojson",
+      "row_count": 5,
+      "columns": [
+        "unit_id",
+        "formation",
+        "age_ma",
+        "lithology"
+      ],
+      "column_profiles": [
+        {
+          "name": "unit_id",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "G001",
+            "G002",
+            "G003",
+            "G004",
+            "G005"
+          ]
+        },
+        {
+          "name": "formation",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 3,
+          "sample_values": [
+            "Archean Basement",
+            "Paleoproterozoic Basin",
+            "Mesoproterozoic Cover",
+            "Archean Basement",
+            "Paleoproterozoic Basin"
+          ]
+        },
+        {
+          "name": "age_ma",
+          "dtype": "int32",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 3,
+          "sample_values": [
+            2500,
+            1800,
+            1200,
+            2500,
+            1800
+          ]
+        },
+        {
+          "name": "lithology",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "Granite",
+            "Sandstone",
+            "Shale",
+            "Gneiss",
+            "Conglomerate"
+          ]
+        }
+      ],
+      "file_size_bytes": 1519,
+      "coordinate_info": null,
+      "planar_coordinate_info": null,
+      "geometry_types": [
+        "Point"
+      ],
+      "crs": "EPSG:4326",
+      "bounding_box": {
+        "min_lat": -23.4645,
+        "max_lat": -23.4567,
+        "min_lon": 134.1234,
+        "max_lon": 134.1312
+      },
+      "duplicate_count": 0,
+      "duplicate_percentage": 0.0,
+      "parse_errors": [],
+      "warnings": []
+    },
+    {
+      "filename": "historical_surveys.csv",
+      "format": "csv",
+      "row_count": 10,
+      "columns": [
+        "survey_id",
+        "lat",
+        "lon",
+        "U_ppm",
+        "date",
+        "method"
+      ],
+      "column_profiles": [
+        {
+          "name": "survey_id",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 10,
+          "sample_values": [
+            "H001",
+            "H002",
+            "H003",
+            "H004",
+            "H005"
+          ]
+        },
+        {
+          "name": "lat",
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 10,
+          "sample_values": [
+            -23.4567,
+            -23.4589,
+            -23.4601,
+            -23.4623,
+            -23.4645
+          ]
+        },
+        {
+          "name": "lon",
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 10,
+          "sample_values": [
+            134.1234,
+            134.1256,
+            134.1278,
+            134.129,
+            134.1312
+          ]
+        },
+        {
+          "name": "U_ppm",
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 10,
+          "sample_values": [
+            250.1,
+            15.2,
+            310.5,
+            65.8,
+            80.1
+          ]
+        },
+        {
+          "name": "date",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 10,
+          "sample_values": [
+            "2020-03-10",
+            "2020-03-11",
+            "2020-03-12",
+            "2020-03-13",
+            "2020-03-14"
+          ]
+        },
+        {
+          "name": "method",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 1,
+          "sample_values": [
+            "gamma-ray",
+            "gamma-ray",
+            "gamma-ray",
+            "gamma-ray",
+            "gamma-ray"
+          ]
+        }
+      ],
+      "file_size_bytes": 530,
+      "coordinate_info": {
+        "lat_column": "lat",
+        "lon_column": "lon",
+        "detection_method": "explicit_lat_lon",
+        "confidence": 0.95,
+        "valid_count": 10,
+        "missing_count": 0,
+        "invalid_count": 0,
+        "total_count": 10,
+        "valid_percentage": 100.0,
+        "missing_percentage": 0.0,
+        "invalid_percentage": 0.0
+      },
+      "planar_coordinate_info": null,
+      "geometry_types": [],
+      "crs": null,
+      "bounding_box": {
+        "min_lat": -23.4745,
+        "max_lat": -23.4567,
+        "min_lon": 134.1234,
+        "max_lon": 134.1412
+      },
+      "duplicate_count": 0,
+      "duplicate_percentage": 0.0,
+      "parse_errors": [],
+      "warnings": []
+    },
+    {
+      "filename": "planar_samples.csv",
+      "format": "csv",
+      "row_count": 8,
+      "columns": [
+        "sample_id",
+        "easting",
+        "northing",
+        "U_ppm",
+        "depth_m",
+        "date"
+      ],
+      "column_profiles": [
+        {
+          "name": "sample_id",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 8,
+          "sample_values": [
+            "P001",
+            "P002",
+            "P003",
+            "P004",
+            "P005"
+          ]
+        },
+        {
+          "name": "easting",
+          "dtype": "float64",
+          "missing_count": 1,
+          "missing_percentage": 12.5,
+          "unique_count": 6,
+          "sample_values": [
+            500000.0,
+            500100.0,
+            500200.0,
+            500300.0,
+            500400.0
+          ]
+        },
+        {
+          "name": "northing",
+          "dtype": "float64",
+          "missing_count": 1,
+          "missing_percentage": 12.5,
+          "unique_count": 6,
+          "sample_values": [
+            7400000.0,
+            7400100.0,
+            7400200.0,
+            7400300.0,
+            7400400.0
+          ]
+        },
+        {
+          "name": "U_ppm",
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 8,
+          "sample_values": [
+            120.5,
+            85.3,
+            210.7,
+            45.2,
+            180.9
+          ]
+        },
+        {
+          "name": "depth_m",
+          "dtype": "float64",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 7,
+          "sample_values": [
+            10.2,
+            11.5,
+            9.8,
+            12.1,
+            10.5
+          ]
+        },
+        {
+          "name": "date",
+          "dtype": "str",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 8,
+          "sample_values": [
+            "2023-02-01",
+            "2023-02-02",
+            "2023-02-03",
+            "2023-02-04",
+            "2023-02-05"
+          ]
+        }
+      ],
+      "file_size_bytes": 363,
+      "coordinate_info": {
+        "lat_column": null,
+        "lon_column": null,
+        "detection_method": "none",
+        "confidence": 0.0,
+        "valid_count": 0,
+        "missing_count": 0,
+        "invalid_count": 0,
+        "total_count": 0,
+        "valid_percentage": 0.0,
+        "missing_percentage": 0.0,
+        "invalid_percentage": 0.0
+      },
+      "planar_coordinate_info": {
+        "x_column": "easting",
+        "y_column": "northing",
+        "detection_method": "planar_heuristic",
+        "count": 8,
+        "missing_count": 1,
+        "missing_percentage": 12.5
+      },
+      "geometry_types": [],
+      "crs": null,
+      "bounding_box": null,
+      "duplicate_count": 0,
+      "duplicate_percentage": 0.0,
+      "parse_errors": [],
+      "warnings": [
+        "Planar coordinates (easting/northing): 12.5% missing"
+      ]
+    }
+  ],
+  "cross_dataset_overlaps": [
+    {
+      "dataset_a": "exploration_samples.csv",
+      "dataset_b": "geology.geojson",
+      "bounding_boxes_overlap": true
+    },
+    {
+      "dataset_a": "exploration_samples.csv",
+      "dataset_b": "historical_surveys.csv",
+      "bounding_boxes_overlap": true
+    },
+    {
+      "dataset_a": "geology.geojson",
+      "dataset_b": "historical_surveys.csv",
+      "bounding_boxes_overlap": true
+    }
+  ],
+  "summary": {
+    "datasets_scanned": 4,
+    "total_records": 35,
+    "total_columns": 23,
+    "warnings": 4,
+    "errors": 0,
+    "datasets_with_coords": 2,
+    "datasets_with_spatial": 3
+  },
+  "generated_at": "2026-10-06T13:16:48.034287"
+}
