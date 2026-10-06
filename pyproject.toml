@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "geo-audit"
+name = "geo-data-audit"
 version = "0.1.0"
 description = "Audit heterogeneous geospatial datasets for common data-quality and spatial-consistency problems before they enter downstream geospatial ML pipelines."
 readme = "README.md"
