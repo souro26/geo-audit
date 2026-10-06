@@ -1,25 +1,6 @@
-"""Data quality checks: missingness, duplicates."""
-
-from dataclasses import dataclass
+"""Data quality checks: duplicates."""
 
 import pandas as pd
-
-
-@dataclass
-class MissingnessThresholds:
-    info: float = 5.0
-    warning: float = 20.0
-
-
-def assess_missingness(percentage: float, thresholds: MissingnessThresholds | None = None) -> str:
-    """Assess missingness severity."""
-    if thresholds is None:
-        thresholds = MissingnessThresholds()
-    if percentage >= thresholds.warning:
-        return "high"
-    elif percentage >= thresholds.info:
-        return "warning"
-    return "info"
 
 
 def detect_exact_duplicates(

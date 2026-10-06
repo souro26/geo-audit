@@ -114,6 +114,18 @@ class TestCoordinateDetection:
         assert info.missing_count == 1
         assert info.missing_percentage > 0
 
+    def test_nonnumeric_coordinates_do_not_crash(self):
+        """Non-numeric coordinate values must be treated as missing, not crash."""
+        df = pd.DataFrame({
+            "latitude": ["40.2", "N/A", "unknown", "40.4"],
+            "longitude": ["-74.1", "-73.9", "-74.0", "missing"],
+        })
+        info = detect_coordinate_columns(df)
+        # Should not raise; non-numeric values fold into missing
+        assert info.total_count == 4
+        assert info.missing_count >= 2  # "unknown"/"missing" become NaN
+        assert info.valid_count + info.missing_count + info.invalid_count == info.total_count
+
     def test_validate_lat_lon(self):
         assert validate_lat_lon(0, 0) is True
         assert validate_lat_lon(-90, -180) is True
@@ -579,10 +591,6 @@ class TestFindings:
 
 
 class TestJsonOutput:
-    def test_json_stdout_no_progress(self, capsys):
-        """JSON mode should not print progress to stdout."""
-        # This is tested via CLI integration
-        pass
 
     def test_json_integration(self, tmp_path):
         """Full CLI integration test for JSON output."""
@@ -596,15 +604,9 @@ class TestJsonOutput:
         csv2 = tmp_path / "test2.csv"
         csv2.write_text("lat,lon,value\n-23.5,134.1,150\n-23.6,134.2,250\n")
 
-        # Run geo-audit via CLI (using the installed console script)
+        # Run geo-audit as a module — portable, no installed console script needed
         result = subprocess.run(
-            [sys.executable, "-m", "pip", "show", "geo-audit"],
-            capture_output=True,
-            text=True,
-        )
-        # Use the installed geo-audit command directly
-        result = subprocess.run(
-            ["geo-audit", str(tmp_path), "--format", "json"],
+            [sys.executable, "-m", "geo_audit.cli", str(tmp_path), "--format", "json"],
             capture_output=True,
             text=True,
         )

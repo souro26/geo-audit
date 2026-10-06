@@ -208,11 +208,32 @@ def _add_duplicate_findings(findings: list[Finding], ds: DatasetInfo) -> None:
 
 
 def _add_missingness_findings(findings: list[Finding], ds: DatasetInfo) -> None:
-    """Add column missingness findings, aggregating moderate missingness."""
+    """Add column missingness findings, aggregating moderate missingness.
+
+    Coordinate columns (lat/lon, planar x/y) are excluded here — their
+    missingness is already surfaced by the coordinate quality findings.
+    """
+    # Build the set of columns already covered by a coordinate finding
+    coord_cols: set[str] = set()
+    if ds.coordinate_info:
+        ci = ds.coordinate_info
+        if ci.lat_column:
+            coord_cols.add(ci.lat_column.lower())
+        if ci.lon_column:
+            coord_cols.add(ci.lon_column.lower())
+    if ds.planar_coordinate_info:
+        pi = ds.planar_coordinate_info
+        if pi.x_column:
+            coord_cols.add(pi.x_column.lower())
+        if pi.y_column:
+            coord_cols.add(pi.y_column.lower())
+
     high_missing = []
     medium_missing = []
 
     for cp in ds.column_profiles:
+        if cp.name.lower() in coord_cols:
+            continue  # already reported in coordinate finding
         if cp.missing_percentage >= MISSINGNESS_HIGH:
             high_missing.append(cp)
         elif cp.missing_percentage >= MISSINGNESS_MEDIUM:

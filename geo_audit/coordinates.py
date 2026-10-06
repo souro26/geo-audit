@@ -89,20 +89,21 @@ def _validate_coordinates(df: pd.DataFrame, info: CoordinateInfo) -> None:
     total = len(df)
     info.total_count = total
 
-    lat_series = df[lat_col]
-    lon_series = df[lon_col]
+    lat_series = pd.to_numeric(df[lat_col], errors="coerce")
+    lon_series = pd.to_numeric(df[lon_col], errors="coerce")
 
     missing_mask = lat_series.isna() | lon_series.isna()
     info.missing_count = int(missing_mask.sum())
 
-    valid_rows = df[~missing_mask].copy()
-    if valid_rows.empty:
+    valid_rows_lat = lat_series[~missing_mask]
+    valid_rows_lon = lon_series[~missing_mask]
+    if valid_rows_lat.empty:
         info.valid_count = 0
         info.invalid_count = 0
         return
 
-    lat_valid = (valid_rows[lat_col] >= -90) & (valid_rows[lat_col] <= 90)
-    lon_valid = (valid_rows[lon_col] >= -180) & (valid_rows[lon_col] <= 180)
+    lat_valid = (valid_rows_lat >= -90) & (valid_rows_lat <= 90)
+    lon_valid = (valid_rows_lon >= -180) & (valid_rows_lon <= 180)
     both_valid = lat_valid & lon_valid
 
     info.valid_count = int(both_valid.sum())

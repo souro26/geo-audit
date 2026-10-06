@@ -108,21 +108,16 @@ def calculate_bounding_box_from_coords(
     df: pd.DataFrame, lat_col: str, lon_col: str
 ) -> BoundingBox | None:
     """Calculate bounding box from coordinate columns."""
-    valid = df.dropna(subset=[lat_col, lon_col])
-    if valid.empty:
-        return None
+    lat = pd.to_numeric(df[lat_col], errors="coerce")
+    lon = pd.to_numeric(df[lon_col], errors="coerce")
 
-    # Filter valid lat/lon ranges
-    valid = valid[
-        (valid[lat_col] >= -90) & (valid[lat_col] <= 90) &
-        (valid[lon_col] >= -180) & (valid[lon_col] <= 180)
-    ]
-    if valid.empty:
+    valid_mask = lat.notna() & lon.notna() & (lat >= -90) & (lat <= 90) & (lon >= -180) & (lon <= 180)
+    if not valid_mask.any():
         return None
 
     return BoundingBox(
-        min_lat=float(valid[lat_col].min()),
-        max_lat=float(valid[lat_col].max()),
-        min_lon=float(valid[lon_col].min()),
-        max_lon=float(valid[lon_col].max()),
+        min_lat=float(lat[valid_mask].min()),
+        max_lat=float(lat[valid_mask].max()),
+        min_lon=float(lon[valid_mask].min()),
+        max_lon=float(lon[valid_mask].max()),
     )
