@@ -1,6 +1,5 @@
 __pycache__/
 *.py[cod]
-*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -9,5 +8,7 @@ htmlcov/
 .venv/
 venv/
 .env
+.DS_Store
+*.egg-info/
 dist/
 build/
