@@ -57,7 +57,8 @@ def audit(
     datasets = []
 
     for file_path, file_format in discover_files(input_dir):
-        console.print(f"[dim]Processing {file_path.name}...[/dim]")
+        if format == "terminal":
+            console.print(f"[dim]Processing {file_path.name}...[/dim]")
         ds_info = process_dataset(file_path, file_format)
         datasets.append(ds_info)
 
