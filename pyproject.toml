@@ -15,7 +15,6 @@ dependencies = [
     "geopandas>=0.14",
     "shapely>=2.0",
     "pyproj>=3.5",
-    "matplotlib>=3.7",
     "typer>=0.9",
     "rich>=13.0",
 ]
@@ -32,8 +31,8 @@ dev = [
 geo-audit = "geo_audit.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/geo-audit"
-Repository = "https://github.com/yourusername/geo-audit"
+Homepage = "https://github.com/souro26/geo-audit"
+Repository = "https://github.com/souro26/geo-audit"
 
 [tool.setuptools.packages.find]
 where = ["src"]
