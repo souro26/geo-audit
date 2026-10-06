@@ -35,7 +35,7 @@ Homepage = "https://github.com/souro26/geo-audit"
 Repository = "https://github.com/souro26/geo-audit"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.ruff]
 line-length = 100

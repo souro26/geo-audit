@@ -66,7 +66,7 @@ The JSON contains structured findings, dataset readiness, and full technical evi
 ## Example terminal output
 
 ```bash
-$ geo-audit examples/data/
+$ geo-audit data/
 ```
 
 ```
@@ -132,7 +132,7 @@ DATASET READINESS
 
 ## Demo data
 
-`examples/data/` contains four synthetic files that cover the common problem cases:
+`data/` contains four synthetic files that cover the common problem cases:
 
 | File | Description |
 |------|-------------|
@@ -143,7 +143,7 @@ DATASET READINESS
 
 Run the demo:
 ```bash
-geo-audit examples/data/
+geo-audit data/
 ```
 
 ## Supported formats
