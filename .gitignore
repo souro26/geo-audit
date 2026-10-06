@@ -13,4 +13,3 @@ venv/
 *.egg-info/
 dist/
 build/
-"@ | Set-Content .gitignore
