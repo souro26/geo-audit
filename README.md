@@ -1,6 +1,6 @@
 ﻿# geo-audit
 
-A command-line tool for auditing geospatial datasets before they go anywhere near a pipeline.
+A geospatial data quality and readiness audit tool for identifying data issues before downstream geospatial analysis and ML.
 
 Geospatial data from field surveys, historical archives, and GIS exports tends to arrive messy — mismatched coordinate columns, undeclared CRS, duplicate locations, missing values scattered across the schema. `geo-audit` scans a directory of CSV and GeoJSON files and surfaces those problems in one pass, without modifying anything.
 
@@ -14,7 +14,7 @@ pip install -e .
 
 Requires Python 3.10+.
 
-## Usage
+## Quick Start
 
 Point it at a directory and it scans everything inside recursively:
 
@@ -43,59 +43,91 @@ For each dataset, `geo-audit` reports row count, column count, and file size. Be
 
 **CRS and spatial extent** — GeoJSON files report their declared CRS. CSVs with detected lat/lon get a bounding box; planar datasets do not, since projecting without a known CRS would be wrong. Bounding box overlap across datasets is computed and reported.
 
-## Example output
+## Output format
+
+The terminal report is decision-oriented:
+
+1. **Overall status** — READY / NEEDS REVIEW / ERROR
+2. **Overall assessment** — concise summary of dataset readiness
+3. **Top priorities** — actionable findings with why-it-matters and recommended actions
+4. **Dataset readiness** — compact table showing each dataset's status (READY / REVIEW / HIGH RISK / ERROR)
+5. **Detailed evidence** — full technical tables for verification
+6. **Technical notes** — limitations and caveats
+
+For structured output:
+
+```bash
+geo-audit ./data/ --format json
+geo-audit ./data/ --format json --output report.json
+```
+
+The JSON contains structured findings, dataset readiness, and full technical evidence.
+
+## Example terminal output
 
 ```bash
 $ geo-audit examples/data/
 ```
 
 ```
-=== geo-audit Report ===
-Generated: 2026-10-06T13:16:33
+GEO-AUDIT
+DATA READINESS REPORT
 
-Executive Summary
-  Datasets scanned                      4
-  Total records                         35
-  Total columns                         23
-  Warnings                              4
-  Errors                                0
-  Datasets with geographic coordinates  2
-  Datasets with spatial extent          3
+STATUS: NEEDS REVIEW
 
-Dataset Inventory
-  File                      Format   Rows  Columns    Size
-  exploration_samples.csv   CSV        12        7  0.7 KB
-  geology.geojson           GEOJSON     5        4  1.5 KB
-  historical_surveys.csv    CSV        10        6  0.5 KB
-  planar_samples.csv        CSV         8        6  0.4 KB
+4 datasets scanned · 35 records · 23 columns
 
-Geographic Coordinate Quality (explicit lat/lon)
-  Dataset                   Lat Col    Lon Col    Method    Confidence  Valid %  Missing %  Invalid %
-  exploration_samples.csv   latitude   longitude  explicit       95%    66.7%      16.7%      16.7%
-  geology.geojson           --         --         none            0%    --         --         --
-  historical_surveys.csv    lat        lon        explicit       95%   100.0%       0.0%       0.0%
-  planar_samples.csv        --         --         none            0%    --         --         --
+8 findings require attention
+0 critical · 2 high · 6 medium · 0 low
 
-Column Missingness (columns with >5% missing)
-  Dataset                   Column     Type     Missing %  Severity
-  exploration_samples.csv   latitude   float64      8.3%   WARN
-  exploration_samples.csv   longitude  float64      8.3%   WARN
-  exploration_samples.csv   notes      str         41.7%   HIGH
-  planar_samples.csv        easting    float64     12.5%   WARN
-  planar_samples.csv        northing   float64     12.5%   WARN
+OVERALL ASSESSMENT
+------------------------------------------------------------
 
-CRS / Spatial Reference
-  Dataset                   CRS                     Geometry Types
-  exploration_samples.csv   unknown / not declared  --
-  geology.geojson           EPSG:4326               Point
-  historical_surveys.csv    unknown / not declared  --
-  planar_samples.csv        unknown / not declared  --
+NOT READY FOR DOWNSTREAM SPATIAL ML
 
-Warnings
-  exploration_samples.csv: 16.7% missing coordinates
-  exploration_samples.csv: 16.7% invalid coordinates
-  exploration_samples.csv: 20.0% exact duplicate locations
-  planar_samples.csv: Planar coordinates (easting/northing): 12.5% missing
+2 dataset(s) have no flagged issues.
+1 dataset(s) require review.
+1 dataset(s) are HIGH RISK.
+
+HIGH RISK:
+  exploration_samples.csv
+
+REVIEW:
+  planar_samples.csv
+
+READY:
+  geology.geojson
+  historical_surveys.csv
+
+TOP PRIORITIES
+------------------------------------------------------------
+
+1. HIGH   exploration_samples.csv
+   Unusable geographic coordinates
+   33.3% of records have unusable coordinates (16.7% missing, 16.7% invalid).
+   Why it matters: Records with missing or invalid latitude/longitude cannot be used in spatial joins, mapping, spatial aggregation, or downstream geospatial ML.
+   Recommended action: Inspect and correct or remove the affected records before downstream spatial processing.
+
+2. HIGH   exploration_samples.csv
+   High missingness in column 'notes'
+   Column 'notes' has 41.7% missing values.
+   Why it matters: High missingness in important columns can bias analysis and reduce statistical power.
+   Recommended action: Assess whether the column is critical for downstream use. Consider imputation, removal, or accepting the reduced sample size.
+
+...
+
+DATASET READINESS
+------------------------------------------------------------
++-----------------------------+--------------+----------+------------------+
+| Dataset                     | Status       | Findings | Highest Severity |
++-----------------------------+--------------+----------+------------------+
+| exploration_samples.csv     | HIGH RISK    | 5        | HIGH             |
+| geology.geojson             | READY        | 0        | INFO             |
+| historical_surveys.csv      | READY        | 0        | INFO             |
+| planar_samples.csv          | REVIEW       | 3        | MEDIUM           |
++-----------------------------+--------------+----------+------------------+
+
+... detailed evidence tables ...
 ```
 
 ## Demo data
@@ -109,9 +141,46 @@ Warnings
 | `geology.geojson` | 5 Point features with EPSG:4326 declared |
 | `planar_samples.csv` | 8 samples with easting/northing (CRS unknown), 12.5% missing |
 
+Run the demo:
+```bash
+geo-audit examples/data/
+```
+
 ## Supported formats
 
 CSV and GeoJSON (`.geojson`, `.json`). Raster, shapefile, and other formats are out of scope for now.
+
+## Readiness semantics
+
+| Status | Meaning |
+|--------|---------|
+| **READY** | No blocking issues detected by the checks currently implemented. |
+| **REVIEW** | Moderate-severity findings present; investigate before downstream use. |
+| **HIGH RISK** | High-severity findings present; resolve before downstream use. |
+| **ERROR** | Parse errors or critical issues; dataset cannot be processed. |
+
+**READY does NOT mean:**
+- The dataset is guaranteed suitable for downstream ML.
+- The data is "correct" or "clean" in an absolute sense.
+
+**READY means:**
+- No blocking issues were detected by the checks currently implemented.
+
+## JSON output
+
+When using `--format json`, stdout contains only valid JSON. No progress messages or Rich formatting. The JSON includes:
+
+- `summary` — dataset counts, record counts, findings by severity
+- `findings` — structured findings with severity, category, title, details, why_it_matters, recommended_action
+- `dataset_readiness` — per-dataset status, finding count, highest severity
+- `datasets` — full technical evidence for each dataset
+- `cross_dataset_overlaps` — bounding box overlap results
+- `generated_at` — ISO timestamp
+
+```bash
+geo-audit ./data/ --format json > report.json
+python -c "import json; json.load(open('report.json')); print('VALID JSON')"
+```
 
 ## Limitations
 

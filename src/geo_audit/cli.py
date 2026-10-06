@@ -1,5 +1,6 @@
 """Main CLI entry point."""
 
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -8,6 +9,11 @@ from rich.console import Console
 
 from geo_audit.coordinates import detect_coordinate_columns, detect_planar_coordinates
 from geo_audit.discovery import discover_files, get_file_size
+from geo_audit.findings import (
+    build_audit_summary,
+    compute_dataset_readiness,
+    generate_findings,
+)
 from geo_audit.loaders import (
     calculate_bounding_box,
     calculate_bounding_box_from_coords,
@@ -34,7 +40,11 @@ app = typer.Typer(
     help=APP_HELP,
     add_completion=False,
 )
-console = Console()
+
+# Separate console for progress (stderr) and report (stdout)
+progress_console = Console(
+    stderr=True, force_terminal=True, color_system="standard", legacy_windows=False
+)
 
 
 @app.command()
@@ -47,42 +57,49 @@ def audit(
 ):
     """Audit geospatial datasets in a directory."""
     if not input_dir.exists() or not input_dir.is_dir():
-        console.print(f"[red]Error: {input_dir} is not a valid directory[/red]")
+        progress_console.print(f"[red]Error: {input_dir} is not a valid directory[/red]")
         raise typer.Exit(1)
 
     if output and format != "json":
-        console.print("[red]Error: --output only works with --format json[/red]")
+        progress_console.print("[red]Error: --output only works with --format json[/red]")
         raise typer.Exit(1)
 
     datasets = []
 
     for file_path, file_format in discover_files(input_dir):
         if format == "terminal":
-            console.print(f"[dim]Processing {file_path.name}...[/dim]")
+            progress_console.print(f"[dim]Processing {file_path.name}...[/dim]")
         ds_info = process_dataset(file_path, file_format)
         datasets.append(ds_info)
 
     if not datasets:
-        console.print("[yellow]No supported datasets found[/yellow]")
+        progress_console.print("[yellow]No supported datasets found[/yellow]")
         raise typer.Exit(0)
 
     overlaps = compute_cross_dataset_overlaps(datasets)
-    summary = build_summary(datasets, overlaps)
+
+    # Generate findings and readiness
+    findings = generate_findings(datasets)
+    dataset_readiness = compute_dataset_readiness(datasets, findings)
+    summary = build_audit_summary(datasets, findings)
 
     report = AuditReport(
         datasets=datasets,
         cross_dataset_overlaps=overlaps,
-        summary=summary,
+        summary=summary.to_dict(),
         generated_at=datetime.now().isoformat(),
+        findings=findings,
+        dataset_readiness=dataset_readiness,
     )
 
     if format == "json":
         json_output = generate_json_report(report)
         if output:
             output.write_text(json_output)
-            console.print(f"[green]Report written to {output}[/green]")
+            # Don't print success message to stdout in JSON mode
         else:
-            console.print(json_output)
+            # Print JSON to stdout (only JSON, no progress messages)
+            sys.stdout.write(json_output + "\n")
     else:
         generate_terminal_report(report)
 
@@ -124,6 +141,7 @@ def process_dataset(file_path: Path, file_format: FileFormat) -> DatasetInfo:
                 data, coord_info.lat_column, coord_info.lon_column
             )
 
+        # Warnings kept for backward compatibility in DatasetInfo
         warnings = []
         if coord_info.lat_column and coord_info.lon_column:
             if coord_info.missing_percentage > 5:
@@ -181,34 +199,6 @@ def process_dataset(file_path: Path, file_format: FileFormat) -> DatasetInfo:
             parse_errors=parse_errors,
             warnings=warnings,
         )
-
-
-def _has_coords(d: DatasetInfo) -> bool:
-    return d.coordinate_info is not None and d.coordinate_info.total_count > 0
-
-
-def build_summary(datasets: list[DatasetInfo], overlaps: list) -> dict:
-    """Build summary statistics."""
-    total_records = sum(d.row_count for d in datasets)
-    total_columns = sum(len(d.columns) for d in datasets)
-    datasets_with_coords = sum(1 for d in datasets if _has_coords(d))
-    datasets_with_spatial = sum(1 for d in datasets if d.bounding_box is not None)
-
-    warnings = 0
-    errors = 0
-    for d in datasets:
-        warnings += len(d.warnings)
-        errors += len(d.parse_errors)
-
-    return {
-        "datasets_scanned": len(datasets),
-        "total_records": total_records,
-        "total_columns": total_columns,
-        "warnings": warnings,
-        "errors": errors,
-        "datasets_with_coords": datasets_with_coords,
-        "datasets_with_spatial": datasets_with_spatial,
-    }
 
 
 if __name__ == "__main__":

@@ -7,8 +7,17 @@ from typing import Any
 
 
 class Severity(str, Enum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
     INFO = "info"
-    WARNING = "warning"
+
+
+class DatasetReadiness(str, Enum):
+    READY = "ready"
+    REVIEW = "review"
+    HIGH_RISK = "high_risk"
     ERROR = "error"
 
 
@@ -27,6 +36,38 @@ class GeometryType(str, Enum):
     MULTIPOLYGON = "MultiPolygon"
     GEOMETRYCOLLECTION = "GeometryCollection"
     UNKNOWN = "unknown"
+
+
+class FindingCategory(str, Enum):
+    COORDINATES = "coordinates"
+    DUPLICATES = "duplicates"
+    MISSINGNESS = "missingness"
+    SCHEMA = "schema"
+    CRS = "crs"
+    PARSE_ERROR = "parse_error"
+    SPATIAL = "spatial"
+
+
+@dataclass
+class Finding:
+    severity: Severity
+    dataset: str
+    category: FindingCategory
+    title: str
+    details: str
+    why_it_matters: str
+    recommended_action: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "severity": self.severity.value,
+            "dataset": self.dataset,
+            "category": self.category.value,
+            "title": self.title,
+            "details": self.details,
+            "why_it_matters": self.why_it_matters,
+            "recommended_action": self.recommended_action,
+        }
 
 
 @dataclass
@@ -208,11 +249,29 @@ class CrossDatasetOverlap:
 
 
 @dataclass
+class DatasetReadinessInfo:
+    filename: str
+    status: DatasetReadiness
+    finding_count: int
+    highest_severity: Severity
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "filename": self.filename,
+            "status": self.status.value,
+            "finding_count": self.finding_count,
+            "highest_severity": self.highest_severity.value,
+        }
+
+
+@dataclass
 class AuditReport:
     datasets: list[DatasetInfo]
     cross_dataset_overlaps: list[CrossDatasetOverlap]
     summary: dict[str, Any]
     generated_at: str
+    findings: list[Finding] = field(default_factory=list)
+    dataset_readiness: list[DatasetReadinessInfo] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -220,7 +279,27 @@ class AuditReport:
             "cross_dataset_overlaps": [o.to_dict() for o in self.cross_dataset_overlaps],
             "summary": self.summary,
             "generated_at": self.generated_at,
+            "findings": [f.to_dict() for f in self.findings],
+            "dataset_readiness": [d.to_dict() for d in self.dataset_readiness],
         }
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), indent=2, default=str)
+
+
+@dataclass
+class AuditSummary:
+    datasets_scanned: int
+    total_records: int
+    total_columns: int
+    findings_count: int
+    by_severity: dict[str, int]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "datasets_scanned": self.datasets_scanned,
+            "total_records": self.total_records,
+            "total_columns": self.total_columns,
+            "findings_count": self.findings_count,
+            "by_severity": self.by_severity,
+        }

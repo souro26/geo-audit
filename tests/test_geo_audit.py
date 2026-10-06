@@ -11,13 +11,22 @@ from geo_audit.coordinates import (
     validate_lat_lon,
 )
 from geo_audit.discovery import discover_files, get_file_format, get_file_size
+from geo_audit.findings import (
+    build_audit_summary,
+    compute_dataset_readiness,
+    generate_findings,
+)
 from geo_audit.models import (
     BoundingBox,
     ColumnProfile,
     CoordinateInfo,
     DatasetInfo,
+    DatasetReadiness,
     FileFormat,
+    Finding,
+    FindingCategory,
     PlanarCoordinateInfo,
+    Severity,
 )
 from geo_audit.quality import detect_exact_duplicates
 from geo_audit.schema import compare_schemas, normalize_column_name
@@ -283,6 +292,377 @@ class TestModels:
         assert d["max_lat"] == -23.4
         assert d["min_lon"] == 134.1
         assert d["max_lon"] == 134.2
+
+
+class TestFindings:
+    def test_finding_model(self):
+        f = Finding(
+            severity=Severity.HIGH,
+            dataset="test.csv",
+            category=FindingCategory.COORDINATES,
+            title="Test finding",
+            details="Details here",
+            why_it_matters="Why it matters",
+            recommended_action="Action to take",
+        )
+        assert f.severity == Severity.HIGH
+        assert f.dataset == "test.csv"
+        d = f.to_dict()
+        assert d["severity"] == "high"
+
+    def test_generate_findings_high_missing_invalid(self):
+        """HIGH finding when >20% missing+invalid coordinates."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=70, missing_count=20, invalid_count=10
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.severity == Severity.HIGH
+        assert f.category == FindingCategory.COORDINATES
+        assert "unusable" in f.title.lower()
+        assert "30.0%" in f.details
+        assert "missing" in f.details.lower()
+        assert "invalid" in f.details.lower()
+
+    def test_generate_findings_medium_missing_invalid(self):
+        """MEDIUM finding when 5-20% missing+invalid coordinates."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=90, missing_count=8, invalid_count=2
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.severity == Severity.MEDIUM
+
+    def test_generate_findings_low_missing_invalid(self):
+        """LOW finding when <5% missing+invalid coordinates."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=97, missing_count=2, invalid_count=1
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.severity == Severity.LOW
+
+    def test_generate_findings_deduplicates_missing_invalid(self):
+        """Single finding for both missing and invalid, not two separate."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=70, missing_count=20, invalid_count=10
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        assert len(findings) == 1  # One finding, not two
+
+    def test_generate_findings_planar_missing(self):
+        """MEDIUM finding for planar coordinates with >5% missing."""
+        pi = PlanarCoordinateInfo(
+            x_column="easting", y_column="northing", detection_method="planar",
+            count=100, missing_count=10
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100,
+            columns=["easting", "northing"],
+            column_profiles=[], file_size_bytes=100,
+            planar_coordinate_info=pi,
+        )
+        findings = generate_findings([ds])
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.severity == Severity.MEDIUM
+        assert f.category == FindingCategory.COORDINATES
+        assert "planar" in f.title.lower()
+
+    def test_generate_findings_duplicate_high(self):
+        """HIGH finding for >20% duplicate locations."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=100, missing_count=0, invalid_count=0
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+            duplicate_count=25,
+            duplicate_percentage=25.0,
+        )
+        findings = generate_findings([ds])
+        # coordinate finding (low/none) + duplicate finding
+        dup_findings = [f for f in findings if f.category == FindingCategory.DUPLICATES]
+        assert len(dup_findings) == 1
+        f = dup_findings[0]
+        assert f.severity == Severity.HIGH
+
+    def test_generate_findings_duplicate_medium(self):
+        """MEDIUM finding for 5-20% duplicate locations."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=100, missing_count=0, invalid_count=0
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+            duplicate_count=10,
+            duplicate_percentage=10.0,
+        )
+        findings = generate_findings([ds])
+        dup_findings = [f for f in findings if f.category == FindingCategory.DUPLICATES]
+        assert len(dup_findings) == 1
+        f = dup_findings[0]
+        assert f.severity == Severity.MEDIUM
+
+    def test_generate_findings_duplicate_low(self):
+        """LOW finding for <5% duplicate locations."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=100, missing_count=0, invalid_count=0
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+            duplicate_count=2,
+            duplicate_percentage=2.0,
+        )
+        findings = generate_findings([ds])
+        dup_findings = [f for f in findings if f.category == FindingCategory.DUPLICATES]
+        assert len(dup_findings) == 1
+        f = dup_findings[0]
+        assert f.severity == Severity.LOW
+
+    def test_generate_findings_missingness_high(self):
+        """HIGH finding for >20% missing in a column."""
+        cp = ColumnProfile(
+            name="important_col", dtype="float64",
+            missing_count=25, missing_percentage=25.0, unique_count=5
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100,
+            columns=["important_col"],
+            column_profiles=[cp], file_size_bytes=100,
+        )
+        findings = generate_findings([ds])
+        miss_findings = [f for f in findings if f.category == FindingCategory.MISSINGNESS]
+        assert len(miss_findings) == 1
+        f = miss_findings[0]
+        assert f.severity == Severity.HIGH
+
+    def test_generate_findings_missingness_medium(self):
+        """MEDIUM finding for 5-20% missing in a column."""
+        cp = ColumnProfile(
+            name="important_col", dtype="float64",
+            missing_count=10, missing_percentage=10.0, unique_count=5
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100,
+            columns=["important_col"],
+            column_profiles=[cp], file_size_bytes=100,
+        )
+        findings = generate_findings([ds])
+        miss_findings = [f for f in findings if f.category == FindingCategory.MISSINGNESS]
+        assert len(miss_findings) == 1
+        f = miss_findings[0]
+        assert f.severity == Severity.MEDIUM
+
+    def test_generate_findings_parse_error_critical(self):
+        """CRITICAL finding for parse errors."""
+        ds = DatasetInfo(
+            filename="bad.csv", format=FileFormat.CSV, row_count=0, columns=[],
+            column_profiles=[], file_size_bytes=100,
+            parse_errors=["CSV parse error: invalid quote"],
+        )
+        findings = generate_findings([ds])
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.severity == Severity.CRITICAL
+        assert f.category == FindingCategory.PARSE_ERROR
+
+    def test_dataset_readiness_error(self):
+        """ERROR status for parse errors."""
+        ds = DatasetInfo(
+            filename="bad.csv", format=FileFormat.CSV, row_count=0, columns=[],
+            column_profiles=[], file_size_bytes=100,
+            parse_errors=["parse error"],
+        )
+        findings = generate_findings([ds])
+        readiness = compute_dataset_readiness([ds], findings)
+        assert len(readiness) == 1
+        assert readiness[0].status == DatasetReadiness.ERROR
+
+    def test_dataset_readiness_high_risk(self):
+        """HIGH RISK status for HIGH findings."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=70, missing_count=20, invalid_count=10
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        readiness = compute_dataset_readiness([ds], findings)
+        assert readiness[0].status == DatasetReadiness.HIGH_RISK
+
+    def test_dataset_readiness_review(self):
+        """REVIEW status for MEDIUM findings."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=90, missing_count=8, invalid_count=2
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        readiness = compute_dataset_readiness([ds], findings)
+        assert readiness[0].status == DatasetReadiness.REVIEW
+
+    def test_dataset_readiness_ready(self):
+        """READY status for no findings or only LOW/INFO."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=100, missing_count=0, invalid_count=0
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        readiness = compute_dataset_readiness([ds], findings)
+        assert readiness[0].status == DatasetReadiness.READY
+
+    def test_build_audit_summary(self):
+        """Build summary with correct counts."""
+        ci = CoordinateInfo(
+            lat_column="lat", lon_column="lon", detection_method="explicit",
+            total_count=100, valid_count=70, missing_count=20, invalid_count=10
+        )
+        ds = DatasetInfo(
+            filename="test.csv", format=FileFormat.CSV, row_count=100, columns=["lat", "lon"],
+            column_profiles=[], file_size_bytes=100,
+            coordinate_info=ci,
+        )
+        findings = generate_findings([ds])
+        summary = build_audit_summary([ds], findings)
+        assert summary.datasets_scanned == 1
+        assert summary.total_records == 100
+        assert summary.findings_count == 1
+        assert summary.by_severity["high"] == 1
+        assert summary.by_severity["medium"] == 0
+
+
+class TestJsonOutput:
+    def test_json_stdout_no_progress(self, capsys):
+        """JSON mode should not print progress to stdout."""
+        # This is tested via CLI integration
+        pass
+
+    def test_json_integration(self, tmp_path):
+        """Full CLI integration test for JSON output."""
+        import json
+        import subprocess
+        import sys
+
+        # Create test data files
+        csv1 = tmp_path / "test1.csv"
+        csv1.write_text("latitude,longitude,value\n-23.5,134.1,100\n-23.6,134.2,200\n")
+        csv2 = tmp_path / "test2.csv"
+        csv2.write_text("lat,lon,value\n-23.5,134.1,150\n-23.6,134.2,250\n")
+
+        # Run geo-audit via CLI (using the installed console script)
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "show", "geo-audit"],
+            capture_output=True,
+            text=True,
+        )
+        # Use the installed geo-audit command directly
+        result = subprocess.run(
+            ["geo-audit", str(tmp_path), "--format", "json"],
+            capture_output=True,
+            text=True,
+        )
+
+        # Check exit code
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+
+        # Check stdout is valid JSON
+        try:
+            report = json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            raise AssertionError(f"stdout is not valid JSON: {e}") from None
+
+        # Check no progress messages in stdout
+        assert "Processing" not in result.stdout
+
+        # Check required top-level keys
+        assert "summary" in report
+        assert "findings" in report
+        assert "dataset_readiness" in report
+        assert "datasets" in report
+        assert "cross_dataset_overlaps" in report
+        assert "generated_at" in report
+
+        # Check summary structure
+        summary = report["summary"]
+        assert summary["datasets_scanned"] == 2
+        assert summary["total_records"] == 4
+        assert "findings_count" in summary
+        assert "by_severity" in summary
+
+        # Check findings structure
+        assert isinstance(report["findings"], list)
+        for finding in report["findings"]:
+            assert "severity" in finding
+            assert "dataset" in finding
+            assert "category" in finding
+            assert "title" in finding
+            assert "details" in finding
+            assert "why_it_matters" in finding
+            assert "recommended_action" in finding
+
+        # Check dataset_readiness structure
+        assert isinstance(report["dataset_readiness"], list)
+        for rd in report["dataset_readiness"]:
+            assert "filename" in rd
+            assert "status" in rd
+            assert "finding_count" in rd
+            assert "highest_severity" in rd
+
+        # Check datasets structure
+        assert len(report["datasets"]) == 2
+        for ds in report["datasets"]:
+            assert "filename" in ds
+            assert "format" in ds
+            assert "row_count" in ds
+            assert "columns" in ds
+            assert "column_profiles" in ds
 
 
 if __name__ == "__main__":
